@@ -459,7 +459,7 @@ class WasteWrangler:
         print(date)
         cursor.execute("UPDATE Trip \
                         SET fid = {} \
-                        WHERE fid = {} and ttime::date = {};".format(reroute_facility, fid, date))
+                        WHERE fid = {} and ttime::date = '{}';".format(reroute_facility, fid, date))
         num_rerouted = cursor.rowcount
         self.connection.commit()
         return num_rerouted
