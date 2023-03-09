@@ -253,6 +253,7 @@ class WasteWrangler:
             # You may find it helpful to uncomment this line while debugging,
             # as it will show you all the details of the error that occurred:
             # raise ex
+            print("PG Error")
             return False
 
     def schedule_trips(self, tid: int, date: dt.date) -> int:
