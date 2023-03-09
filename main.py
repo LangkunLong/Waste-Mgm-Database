@@ -146,11 +146,13 @@ class WasteWrangler:
             cursor1.execute("select * from Route where rid = {};".format(rid))
             if len(cursor1.fetchall()) == 0:
                 cursor1.close()
+                print("invalid rid")
                 return False
             # check if there is a trip already scheduled
             cursor1.execute("select rid from Trip where rid = {} and ttime = {};".format(rid, time))
             if len(cursor1.fetchall()) != 0:
                 cursor1.close()
+                print("Trip scheduled")
                 return False
             # check if there is a facility with corresponding wastetype
             cursor1.execute("SELECT fid \
@@ -159,6 +161,7 @@ class WasteWrangler:
             available_facility = cursor1.fetchone()
             if available_facility is None:
                 cursor1.close()
+                print("No facility")
                 return False
             # At this point, our rid should be valid, so our fetchall won't return an empty list
             # fetchall returns a list of tuples
@@ -182,6 +185,7 @@ class WasteWrangler:
             legal_time = cursor1.fetchall()
             if len(legal_time) == 0 or time.day != endtime.day:
                 cursor1.close()
+                print("Not in working hours")
                 return False
             # find the trucks that is not in maintenance, no trip in 30 minutes prior to this trip or overlapping in the time interval
             # no trip after its end time (endtime)
@@ -202,9 +206,10 @@ class WasteWrangler:
                                                                                 endtime + dt.timedelta(minutes=30),
                                                                                 time - dt.timedelta(minutes=30),
                                                                                 time + dt.timedelta(minutes=30)))
-            truck_find = cursor1.fetchone()  # list of tuples
-            if truck_find is None:
+            truck_find = cursor1.fetchall()  # list of tuples
+            if len(truck_find) == 0:
                 cursor1.close()
+                print("No Truck Available")
                 return False
             # find all the available employees
             cursor1.execute("CREATE VIEW All_drivers_available AS \
@@ -233,12 +238,13 @@ class WasteWrangler:
                                     FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
                                     WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = {}\
                                  ) \
-                                 ;".format(truck_find[1]))
+                                 ;".format(truck_find[0][1]))
             pair_drivers = cursor1.fetchone()
             if len(pair_drivers) == 0:
+                print("No drivers")
                 return False
             cursor1.execute(
-                "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {});".format(rid, time, truck_find[0], truck_find[2],
+                "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {});".format(rid, time, truck_find[0][1], truck_find[0][2],
                                                                                pair_drivers[0], pair_drivers[1],
                                                                                available_facility))
             return True
