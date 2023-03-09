@@ -139,122 +139,124 @@ class WasteWrangler:
         # Maintenance(tID, eID, date)
         # Employee(eID, name, hireDate) Driver(eID, truckType)
         # Truck(tID, truckType, capacity) TruckType(truckType, wasteType) Facility(fID, address, wasteType) Route(rID, wasteType, length)
-        try:
-            # TODO: implement this method
-            cursor1 = self.connection.cursor()
-            # check for valid rid
-            cursor1.execute("select * from Route where rid = {};".format(rid))
-            if len(cursor1.fetchall()) == 0:
-                cursor1.close()
-                print("invalid rid")
-                return False
-            # check if there is a trip already scheduled
-            cursor1.execute("select rid from Trip where rid = {} and ttime = {};".format(rid, time))
-            if len(cursor1.fetchall()) != 0:
-                cursor1.close()
-                print("Trip scheduled")
-                return False
-            # check if there is a facility with corresponding wastetype
-            cursor1.execute("SELECT fid \
-                                 FROM facility, truck, Route, TruckType ON truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype = facility.wastetype \
-                                 WHERE Route.rid = {};".format(rid))
-            available_facility = cursor1.fetchone()
-            if available_facility is None:
-                cursor1.close()
-                print("No facility")
-                return False
-            # At this point, our rid should be valid, so our fetchall won't return an empty list
-            # fetchall returns a list of tuples
-            # find the waste type of corresponding to rid
-            cursor1.execute("SELECT wastetype FROM Route WHERE rid = {};".format(rid))
-            wastetype = cursor1.fetchone()[0]
-            cursor1.execute("SELECT length FROM Route WHERE rid = {};".format(rid))
-            length = cursor1.fetchone()[0]
-            endtime = time + dt.timedelta(hours=length / 5)
-            # check if the time falls in 8:00:00 and 16:00:00 on the same date
-            eight_am = dt.datetime(time.year, time.month, time.day, 8, 0, 0)
-            four_pm = dt.datetime(time.year, time.month, time.day, 16, 0, 0)
-            cursor1.execute("SELECT * \
-                                 FROM Route \
-                                 WHERE rid = {} and {} BETWEEN {} and {} and {} BETWEEN {} and {};".format(rid, time,
-                                                                                                           eight_am,
-                                                                                                           four_pm,
-                                                                                                           endtime,
-                                                                                                           eight_am,
-                                                                                                           four_pm))
-            legal_time = cursor1.fetchall()
-            if len(legal_time) == 0 or time.day != endtime.day:
-                cursor1.close()
-                print("Not in working hours")
-                return False
-            # find the trucks that is not in maintenance, no trip in 30 minutes prior to this trip or overlapping in the time interval
-            # no trip after its end time (endtime)
-            cursor1.execute("CREATE VIEW available_truck AS \
-                                 SELECT t1.tid tid, t1.trucktype trucktype, t1.capacity capacity \
-                                 FROM Truck t1 NATURAL JOIN TruckType ty1 NATURAL JOIN maintenance \
-                                 WHERE ty1.wastetype = {} and maintenance.mdate != {} and NOT EXISTS( \
-                                    SELECT * \
-                                    FROM Route r1 NATURAL JOIN Trip tr1 \
-                                    WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
-                                           or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
-                                 ORDER BY DESC t1.capacity, ASC t1.tid;".format(wastetype,
-                                                                                dt.date(time.year, time.month,
-                                                                                        time.day),
-                                                                                time - dt.timedelta(minutes=30),
-                                                                                endtime + dt.timedelta(minutes=30),
-                                                                                time - dt.timedelta(minutes=30),
-                                                                                endtime + dt.timedelta(minutes=30),
-                                                                                time - dt.timedelta(minutes=30),
-                                                                                time + dt.timedelta(minutes=30)))
-            truck_find = cursor1.fetchall()  # list of tuples
-            if len(truck_find) == 0:
-                cursor1.close()
-                print("No Truck Available")
-                return False
-            # find all the available employees
-            cursor1.execute("CREATE VIEW All_drivers_available AS \
-                                 SELECT d1.eid \
-                                 FROM Driver d1 JOIN Employee e1 ON d1.eid = e1.eid\
-                                 WHERE NOT EXISTS ( \
-                                 SELECT Route r1 \
-                                 FROM Route r1 NATURAL JOIN Trip tr1 \
-                                 WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
-                                           or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
-                                 ) \
-                                 ORDER BY ASC e1.hiredate;"
-                            .format(time - dt.timedelta(minutes=30),
-                                    endtime + dt.timedelta(minutes=30),
-                                    time - dt.timedelta(minutes=30),
-                                    endtime + dt.timedelta(minutes=30),
-                                    time - dt.timedelta(minutes=30),
-                                    endtime + dt.timedelta(minutes=30)))
-            if len(cursor1.fetchall()) == 0:
-                cursor1.close()
-                print("No available employees")
-                return False
-            cursor1.execute("SELECT a1.eid, a2.eid \
-                                 FROM All_drivers_available a1 JOIN All_drivers_available a2 \
-                                 WHERE a1.eid != a2.eid and EXISTS ( \
-                                    SELECT * \
-                                    FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
-                                    WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = {}\
-                                 ) \
-                                 ;".format(truck_find[0][1]))
-            pair_drivers = cursor1.fetchone()
-            if len(pair_drivers) == 0:
-                print("No drivers")
-                return False
-            cursor1.execute(
-                "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {});".format(rid, time, truck_find[0][1], truck_find[0][2],
-                                                                               pair_drivers[0], pair_drivers[1],
-                                                                               available_facility))
-            return True
-        except pg.Error as ex:
-            # You may find it helpful to uncomment this line while debugging,
-            # as it will show you all the details of the error that occurred:
-            # raise ex
-            print("PG Error")
+        # try:
+        # TODO: implement this method
+        cursor1 = self.connection.cursor()
+        # check for valid rid
+        cursor1.execute("select * from Route where rid = {};".format(rid))
+        if len(cursor1.fetchall()) == 0:
+            cursor1.close()
+            print("invalid rid")
             return False
+        # check if there is a trip already scheduled
+        cursor1.execute("select rid from Trip where rid = {} and ttime = {};".format(rid, time))
+        if len(cursor1.fetchall()) != 0:
+            cursor1.close()
+            print("Trip scheduled")
+            return False
+        # check if there is a facility with corresponding wastetype
+        cursor1.execute("SELECT fid \
+                             FROM facility, truck, Route, TruckType ON truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype = facility.wastetype \
+                             WHERE Route.rid = {};".format(rid))
+        available_facility = cursor1.fetchone()
+        if available_facility is None:
+            cursor1.close()
+            print("No facility")
+            return False
+        # At this point, our rid should be valid, so our fetchall won't return an empty list
+        # fetchall returns a list of tuples
+        # find the waste type of corresponding to rid
+        cursor1.execute("SELECT wastetype FROM Route WHERE rid = {};".format(rid))
+        wastetype = cursor1.fetchone()[0]
+        cursor1.execute("SELECT length FROM Route WHERE rid = {};".format(rid))
+        length = cursor1.fetchone()[0]
+        endtime = time + dt.timedelta(hours=length / 5)
+        # check if the time falls in 8:00:00 and 16:00:00 on the same date
+        eight_am = dt.datetime(time.year, time.month, time.day, 8, 0, 0)
+        four_pm = dt.datetime(time.year, time.month, time.day, 16, 0, 0)
+        cursor1.execute("SELECT * \
+                             FROM Route \
+                             WHERE rid = {} and {} BETWEEN {} and {} and {} BETWEEN {} and {};".format(rid, time,
+                                                                                                       eight_am,
+                                                                                                       four_pm,
+                                                                                                       endtime,
+                                                                                                       eight_am,
+                                                                                                       four_pm))
+        legal_time = cursor1.fetchall()
+        if len(legal_time) == 0 or time.day != endtime.day:
+            cursor1.close()
+            print("Not in working hours")
+            return False
+        # find the trucks that is not in maintenance, no trip in 30 minutes prior to this trip or overlapping in the time interval
+        # no trip after its end time (endtime)
+        cursor1.execute("CREATE VIEW available_truck AS \
+                             SELECT t1.tid tid, t1.trucktype trucktype, t1.capacity capacity \
+                             FROM Truck t1 NATURAL JOIN TruckType ty1 NATURAL JOIN maintenance \
+                             WHERE ty1.wastetype = {} and maintenance.mdate != {} and NOT EXISTS( \
+                                SELECT * \
+                                FROM Route r1 NATURAL JOIN Trip tr1 \
+                                WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
+                                       or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
+                             ORDER BY DESC t1.capacity, ASC t1.tid;".format(wastetype,
+                                                                            dt.date(time.year, time.month,
+                                                                                    time.day),
+                                                                            time - dt.timedelta(minutes=30),
+                                                                            endtime + dt.timedelta(minutes=30),
+                                                                            time - dt.timedelta(minutes=30),
+                                                                            endtime + dt.timedelta(minutes=30),
+                                                                            time - dt.timedelta(minutes=30),
+                                                                            time + dt.timedelta(minutes=30)))
+        truck_find = cursor1.fetchall()  # list of tuples
+        if len(truck_find) == 0:
+            cursor1.close()
+            print("No Truck Available")
+            return False
+        # find all the available employees
+        cursor1.execute("CREATE VIEW All_drivers_available AS \
+                             SELECT d1.eid \
+                             FROM Driver d1 JOIN Employee e1 ON d1.eid = e1.eid\
+                             WHERE NOT EXISTS ( \
+                             SELECT Route r1 \
+                             FROM Route r1 NATURAL JOIN Trip tr1 \
+                             WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
+                                       or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
+                             ) \
+                             ORDER BY ASC e1.hiredate;"
+                        .format(time - dt.timedelta(minutes=30),
+                                endtime + dt.timedelta(minutes=30),
+                                time - dt.timedelta(minutes=30),
+                                endtime + dt.timedelta(minutes=30),
+                                time - dt.timedelta(minutes=30),
+                                endtime + dt.timedelta(minutes=30)))
+        if len(cursor1.fetchall()) == 0:
+            cursor1.close()
+            print("No available employees")
+            return False
+        cursor1.execute("SELECT a1.eid, a2.eid \
+                             FROM All_drivers_available a1 JOIN All_drivers_available a2 \
+                             WHERE a1.eid != a2.eid and EXISTS ( \
+                                SELECT * \
+                                FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
+                                WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = {}\
+                             ) \
+                             ;".format(truck_find[0][1]))
+        pair_drivers = cursor1.fetchone()
+        if len(pair_drivers) == 0:
+            print("No drivers")
+            return False
+        cursor1.execute(
+            "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {});".format(rid, time, truck_find[0][1], truck_find[0][2],
+                                                                           pair_drivers[0], pair_drivers[1],
+                                                                           available_facility))
+        return True
+        # try:
+        #
+        # except pg.Error as ex:
+        #     # You may find it helpful to uncomment this line while debugging,
+        #     # as it will show you all the details of the error that occurred:
+        #     # raise ex
+        #     print("PG Error")
+        #     return False
 
     def schedule_trips(self, tid: int, date: dt.date) -> int:
         """Schedule the truck identified with <tid> for trips on <date> using
