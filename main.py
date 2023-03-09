@@ -234,18 +234,25 @@ class WasteWrangler:
         # if len(cursor1.fetchall()) == 0:
         #     cursor1.close()
         #     print("No available employees")
+        #
         #     return False
-        cursor1.execute("SELECT a1.eid eid1, a2.eid eid2\
-                         FROM All_drivers_available a1, All_drivers_available a2 \
-                         WHERE a1.eid != a2.eid and EXISTS ( \
-                            SELECT * \
-                            FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
-                            WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = '{}'\
-                         );".format(truck_find[0][1]))
-        # pair_drivers = cursor1.fetchone()
-        if cursor1.rowcount == 0:
-            print("No drivers")
-            return False
+        for i in range(len(truck_find)):
+            cursor1.execute("SELECT a1.eid eid1, a2.eid eid2\
+                             FROM All_drivers_available a1, All_drivers_available a2 \
+                             WHERE a1.eid != a2.eid and EXISTS ( \
+                                SELECT * \
+                                FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid \
+                                WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = '{}' \
+                             );".format(truck_find[i][1]))
+            # pair_drivers = cursor1.fetchone()
+            if cursor1.rowcount != 0:
+                break
+            if cursor1.rowcount == 0:
+                if i == (len(truck_find) - 1):
+                    print("No employee found")
+                    return False
+                else:
+                    continue
         pair_drivers = cursor1.fetchone()
         cursor1.execute(
             "INSERT INTO Trip VALUES ({}, {}, '{}', NULL, {}, {}, {});".format(rid, truck_find[0][0], time,
