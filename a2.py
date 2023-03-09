@@ -195,12 +195,12 @@ class WasteWrangler:
         allRoutes = list()
         for row in truck_wastetype:
             waste = truck_wastetype[1]
-            cursor.execute("select dsitinct t1.rid \
+            cursor.execute("select distinct t1.rid \
                             from Trip natural join Route t1 \
                             where t1 not in (select t2.rid \
                                              from Trip natural join Route t2 \
                                              where t2.date = %s and t2.wastetype = %s) \
-                            orderby t1.rid asc;", [date, waste])
+                            order by t1.rid asc;", [date, waste])
             subRoute = cursor.fetchall()
             allRoutes = allRoutes.extend(subRoute)
         
