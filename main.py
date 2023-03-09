@@ -157,7 +157,8 @@ class WasteWrangler:
         # check if there is a facility with corresponding wastetype
         cursor1.execute("SELECT fid \
                              FROM facility, truck, Route, TruckType \
-                             WHERE truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype and TruckType.wastetype = facility.wastetype and Route.rid = {};".format(rid))
+                             WHERE truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype and TruckType.wastetype = facility.wastetype and Route.rid = {};".format(
+            rid))
         if cursor1.rowcount == 0:
             cursor1.close()
             print("No facility")
@@ -247,10 +248,9 @@ class WasteWrangler:
             return False
         pair_drivers = cursor1.fetchone()
         cursor1.execute(
-            "INSERT INTO Trip VALUES ({}, {}, '{}', {}, {}, {}, {});".format(rid, truck_find[0][0], time,
-                                                                             None,
-                                                                             pair_drivers[0], pair_drivers[1],
-                                                                             available_facility))
+            "INSERT INTO Trip VALUES ({}, {}, '{}', NULL, {}, {}, {});".format(rid, truck_find[0][0], time,
+                                                                               pair_drivers[0], pair_drivers[1],
+                                                                               available_facility))
         cursor1.execute("DROP VIEW All_drivers_available CASCADE;")
         return True
         # try:
