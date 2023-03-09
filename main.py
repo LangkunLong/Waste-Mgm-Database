@@ -128,7 +128,7 @@ class WasteWrangler:
         is true:
             * If rid is an invalid route ID.
             * If no appropriate truck, drivers or facility can be found.
-            * If a trip has already been scheduled for <rid> on the same day
+                        * If a trip has already been scheduled for <rid> on the same day
               as <time> (that encompasses the exact same time as <time>).
             * If the trip can't be scheduled within working hours i.e., between
               8:00-16:00.
@@ -347,7 +347,7 @@ class WasteWrangler:
             # TODO: implement this method
             sphere_queue = []  # the frontier queue used to keep expanding
             workmate = []  # the actual list to return
-            workmate_set = ()  # the set used to prevent duplicate
+            workmate_set = set()  # the set used to prevent duplicate
 
             cursor = self.connection.cursor()
             cursor.execute("SELECT eid1, eid2 FROM Trip WHERE Trip.eid1 = {} or Trip.eid2 = {};".format(eid, eid))
@@ -358,12 +358,12 @@ class WasteWrangler:
             for x in initial_tuple:
                 if x[0] == eid:
                     if x[1] not in workmate_set:
-                        workmate_set.__add__(x[1])
+                        workmate_set.add(x[1])
                         sphere_queue.append(x[1])
                         workmate.append(x[1])
                 else:
                     if x[0] not in workmate_set:
-                        workmate_set.__add__(x[0])
+                        workmate_set.add(x[0])
                         sphere_queue.append(x[0])
                         workmate.append(x[0])
             while len(sphere_queue):
@@ -375,12 +375,12 @@ class WasteWrangler:
                 for y in next_tuple:
                     if y[0] == eid:
                         if y[1] not in workmate_set:
-                            workmate_set.__add__(y[1])
+                            workmate_set.add(y[1])
                             sphere_queue.append(y[1])
                             workmate.append(y[1])
                     else:
                         if y[0] not in workmate_set:
-                            workmate_set.__add__(y[0])
+                            workmate_set.add(y[0])
                             sphere_queue.append(y[0])
                             workmate.append(y[0])
 
