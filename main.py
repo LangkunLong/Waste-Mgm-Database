@@ -149,7 +149,7 @@ class WasteWrangler:
             print("invalid rid")
             return False
         # check if there is a trip already scheduled
-        cursor1.execute("select rid from Trip where rid = {} and ttime = '{}';".format(rid, time))
+        cursor1.execute("select rid from Trip where rid = {} and ttime::date = '{}';".format(rid, time.date()))
         if cursor1.rowcount != 0:
             cursor1.close()
             print("Trip scheduled")
