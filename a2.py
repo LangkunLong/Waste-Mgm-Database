@@ -218,11 +218,11 @@ class WasteWrangler:
         cursor.execute(" create view allDriverTrips as \
                         (select distinct eid \
                          from Driver join Trip on Driver.eid = Trip.eid1 \
-                         where date(trip.ttime) = '%s') \
+                         where date(trip.ttime) = %s) \
                          UNION \
                         (select distinct eid \
                          from Driver join Trip on Driver.eid = Trip.eid2 \
-                         where date(trip.ttime) = '%s');", [date.date(), date.date()])
+                         where date(trip.ttime) = %s);", [date.date(), date.date()])
         
         #obtain all the drivers who do not have a booked trip on that day, creates a view called <allDrivers>
         cursor.execute("create view allDrivers as \
