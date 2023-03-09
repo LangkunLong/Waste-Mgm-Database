@@ -248,7 +248,7 @@ class WasteWrangler:
         pair_drivers = cursor1.fetchone()
         cursor1.execute(
             "INSERT INTO Trip VALUES ({}, {}, '{}', {}, {}, {}, {});".format(rid, truck_find[0][0], time,
-                                                                             truck_find[0][2],
+                                                                             None,
                                                                              pair_drivers[0], pair_drivers[1],
                                                                              available_facility))
         cursor1.execute("DROP VIEW All_drivers_available CASCADE;")
