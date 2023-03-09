@@ -300,6 +300,7 @@ class WasteWrangler:
                 #insert into trips relation: 
                 cursor.execute("insert into trip values \
                                 (%s, %s, %s, NULL, %s, %s, %s);", [rid, tid, current_time, driver1, driver2, fid])
+                print("inserted into trips: (%s, %s, %s, NULL, %s, %s, %s)",rid, tid, current_time, driver1, driver2, fid)
                 
                 #update time; update number of trips scheduled 
                 current_time = current_time + dt.timedelta(hours=float(route_length/5)) #time it takes to finish the route
@@ -308,6 +309,15 @@ class WasteWrangler:
 
             else:
                 break
+
+        cursor.execute("drop view if exists allDriverTrips cascade;")
+        cursor.execute("drop view if exists allDrivers cascade;")
+        cursor.execute("drop view if exists allAvailableDrivers cascade;")
+        cursor.execute("drop view if exists driverExperience cascade;")
+
+        #commit newly inserted 
+        if trips_scheduled > 0:
+            self.connection.commit()
 
         return trips_scheduled
     
