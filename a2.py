@@ -208,8 +208,8 @@ class WasteWrangler:
         
         all_distinct_routes = set(allRoutes)
         #no available routes 
-        if len(all_distinct_routes) == 0:
-            return 0 
+        #if len(all_distinct_routes) == 0:
+        #    return 0 
 
         #Step2: Starting from 8 a.m., find the earliest available pair of drivers of whom at least one can drive the
         #given truck and both are available for the day. Break ties by choosing lower eIDs.
