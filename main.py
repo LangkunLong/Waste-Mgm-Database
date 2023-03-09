@@ -193,7 +193,7 @@ class WasteWrangler:
         cursor1.execute("CREATE VIEW available_truck AS \
                              SELECT t1.tid tid, t1.trucktype trucktype, t1.capacity capacity \
                              FROM Truck t1 NATURAL JOIN TruckType ty1 NATURAL JOIN maintenance \
-                             WHERE ty1.wastetype = {} and maintenance.mdate != {} and NOT EXISTS( \
+                             WHERE ty1.wastetype = '{}' and maintenance.mdate != '{}' and NOT EXISTS( \
                                 SELECT * \
                                 FROM Route r1 NATURAL JOIN Trip tr1 \
                                 WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
