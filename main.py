@@ -149,7 +149,7 @@ class WasteWrangler:
             print("invalid rid")
             return False
         # check if there is a trip already scheduled
-        cursor1.execute("select rid from Trip where rid = {} and ttime = {};".format(rid, time))
+        cursor1.execute("select rid from Trip where rid = {} and ttime = '{}';".format(rid, time))
         if len(cursor1.fetchall()) != 0:
             cursor1.close()
             print("Trip scheduled")
@@ -176,12 +176,13 @@ class WasteWrangler:
         four_pm = dt.datetime(time.year, time.month, time.day, 16, 0, 0)
         cursor1.execute("SELECT * \
                              FROM Route \
-                             WHERE rid = {} and {} BETWEEN {} and {} and {} BETWEEN {} and {};".format(rid, time,
-                                                                                                       eight_am,
-                                                                                                       four_pm,
-                                                                                                       endtime,
-                                                                                                       eight_am,
-                                                                                                       four_pm))
+                             WHERE rid = {} and '{}' BETWEEN '{}' and '{}' and '{}' BETWEEN '{}' and '{}';".format(rid,
+                                                                                                                   time,
+                                                                                                                   eight_am,
+                                                                                                                   four_pm,
+                                                                                                                   endtime,
+                                                                                                                   eight_am,
+                                                                                                                   four_pm))
         legal_time = cursor1.fetchall()
         if len(legal_time) == 0 or time.day != endtime.day:
             cursor1.close()
@@ -195,8 +196,8 @@ class WasteWrangler:
                              WHERE ty1.wastetype = {} and maintenance.mdate != {} and NOT EXISTS( \
                                 SELECT * \
                                 FROM Route r1 NATURAL JOIN Trip tr1 \
-                                WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
-                                       or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
+                                WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
+                                       or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
                              ORDER BY DESC t1.capacity, ASC t1.tid;".format(wastetype,
                                                                             dt.date(time.year, time.month,
                                                                                     time.day),
@@ -218,8 +219,8 @@ class WasteWrangler:
                              WHERE NOT EXISTS ( \
                              SELECT Route r1 \
                              FROM Route r1 NATURAL JOIN Trip tr1 \
-                             WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
-                                       or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
+                             WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
+                                       or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
                              ) \
                              ORDER BY ASC e1.hiredate;"
                         .format(time - dt.timedelta(minutes=30),
@@ -237,7 +238,7 @@ class WasteWrangler:
                              WHERE a1.eid != a2.eid and EXISTS ( \
                                 SELECT * \
                                 FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
-                                WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = {}\
+                                WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = '{}'\
                              ) \
                              ;".format(truck_find[0][1]))
         pair_drivers = cursor1.fetchone()
@@ -245,9 +246,10 @@ class WasteWrangler:
             print("No drivers")
             return False
         cursor1.execute(
-            "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {});".format(rid, time, truck_find[0][1], truck_find[0][2],
-                                                                           pair_drivers[0], pair_drivers[1],
-                                                                           available_facility))
+            "INSERT INTO Trip VALUES ({}, '{}', {}, {}, {}, {}, {});".format(rid, time, truck_find[0][1],
+                                                                             truck_find[0][2],
+                                                                             pair_drivers[0], pair_drivers[1],
+                                                                             available_facility))
         return True
         # try:
         #
