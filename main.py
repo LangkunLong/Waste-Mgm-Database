@@ -157,8 +157,8 @@ class WasteWrangler:
         # check if there is a facility with corresponding wastetype
         cursor1.execute("SELECT fid \
                              FROM facility, truck, Route, TruckType \
-                             WHERE truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype and TruckType.wastetype = facility.wastetype and Route.rid = {};".format(
-            rid))
+                             WHERE truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype and TruckType.wastetype = facility.wastetype and Route.rid = {} \
+                             ORDER BY fid ASC;".format(rid))
         if cursor1.rowcount == 0:
             cursor1.close()
             print("No facility")
