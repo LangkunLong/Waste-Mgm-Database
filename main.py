@@ -252,6 +252,7 @@ class WasteWrangler:
                                                                                pair_drivers[0], pair_drivers[1],
                                                                                available_facility))
         cursor1.execute("DROP VIEW All_drivers_available CASCADE;")
+        self.connection.commit()
         return True
         # try:
         #
@@ -526,6 +527,9 @@ def test_preliminary() -> None:
         assert not scheduled_trip, \
             f"[Schedule Trip] Expected False, Got {scheduled_trip}"
 
+        scheduled_trip = ww.schedule_trip(1, dt.datetime(2023, 5, 5, 15, 0))
+        assert not scheduled_trip, \
+            f"[Schedule Trip] Expected False, Got {scheduled_trip}"
         # -------------------- Testing schedule_trips  ------------------------#
 
         # All routes for truck tid are scheduled on that day
