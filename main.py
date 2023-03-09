@@ -230,10 +230,10 @@ class WasteWrangler:
                                 endtime + dt.timedelta(minutes=30),
                                 time - dt.timedelta(minutes=30),
                                 endtime + dt.timedelta(minutes=30)))
-        if len(cursor1.fetchall()) == 0:
-            cursor1.close()
-            print("No available employees")
-            return False
+        # if len(cursor1.fetchall()) == 0:
+        #     cursor1.close()
+        #     print("No available employees")
+        #     return False
         cursor1.execute("SELECT a1.eid, a2.eid \
                              FROM All_drivers_available a1 JOIN All_drivers_available a2 \
                              WHERE a1.eid != a2.eid and EXISTS ( \
