@@ -215,7 +215,7 @@ class WasteWrangler:
         truck_find = cursor1.fetchall()  # list of tuples
         # find all the available employees
         cursor1.execute("CREATE VIEW All_drivers_available AS \
-                             SELECT d1.eid \
+                             SELECT d1.eid eid \
                              FROM Driver d1 JOIN Employee e1 ON d1.eid = e1.eid\
                              WHERE NOT EXISTS ( \
                                  SELECT * \
@@ -235,13 +235,13 @@ class WasteWrangler:
         #     print("No available employees")
         #     return False
         cursor1.execute("SELECT a1.eid, a2.eid \
-                             FROM All_drivers_available a1 JOIN All_drivers_available a2 \
-                             WHERE a1.eid != a2.eid and EXISTS ( \
-                                SELECT * \
-                                FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
-                                WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = '{}'\
-                             ) \
-                             ;".format(truck_find[0][1]))
+                         FROM All_drivers_available a1 JOIN All_drivers_available a2 \
+                         WHERE a1.eid != a2.eid and EXISTS ( \
+                            SELECT * \
+                            FROM All_drivers_available a3 JOIN Driver d2 ON d2.eid = a3.eid\
+                            WHERE (d2.eid = a1.eid or d2.eid = a2.eid) and d2.trucktype = '{}'\
+                         ) \
+                         ;".format(truck_find[0][1]))
         pair_drivers = cursor1.fetchone()
         if cursor1.rowcount == 0:
             print("No drivers")
