@@ -208,9 +208,11 @@ class WasteWrangler:
         
         all_distinct_routes = set(allRoutes)
         #no available routes 
-        #if len(all_distinct_routes) == 0:
-        #    return 0 
-
+        """
+        if len(all_distinct_routes) == 0:
+            return 0 
+        """
+        
         #Step2: Starting from 8 a.m., find the earliest available pair of drivers of whom at least one can drive the
         #given truck and both are available for the day. Break ties by choosing lower eIDs.
 
@@ -249,14 +251,20 @@ class WasteWrangler:
         cursor.execute("select t1.eid, t2.eid \
                         from driverExperience t1, driverExperience t2 \
                         where not t1.eid = t2.eid \
-                        and (t1.trucktype = %s or t2.trucktype = %s;",[truck_type, truck_type])
-        driver1, driver2 = enumerate(cursor.featchone())
+                        and (t1.trucktype = %s or t2.trucktype = %s);",[truck_type, truck_type])
+        #no available drivers
+        """
+        if cursor.rowcount == 0:
+            return 0
+        """
+        driver1, driver2 = cursor.featchone()[0], cursor.featchone()[1]
 
         #loop over the routes, and scheduling trips based on ascending rIDs. First trip assumes start at 8am, adds (route.length / 5km/hr)
         trips_scheduled = 0
         start_time = dt.datetime.combine(date, dt.time(8,0)) # 2023-05-03 08:00:00
         current_time = start_time
         end_time = dt.datetime.combine(date, dt.time(16,0))
+
         for route in range(len(all_distinct_routes)):
             if current_time < end_time:
                 cursor.execute("select wastetype, length \
@@ -267,7 +275,7 @@ class WasteWrangler:
                 #ALSO NEED FID VALUE (get from wastype from route it )
 
                 #obtain the length and wastetype of the route 
-                route_waste, route_length = enumerate(cursor.fetchall())
+                route_waste, route_length = cursor.fetchone()[0], cursor.fetchone()[1]
 
                 #get the lowest fid that can collect the waste of the route
                 cursor.execute("select fid \
