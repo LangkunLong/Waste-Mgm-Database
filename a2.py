@@ -181,7 +181,7 @@ class WasteWrangler:
 
         cursor = self.connection.cursor()
 
-        cursor.execute("select Truck.tid, TruckType.wastetype, Truck.capacity \
+        cursor.execute("select * \
                        from Truck natural join TruckType \
                        where Truck.tid = %s;", [tid]) #get all wastetype the given truck can carry 
         truck_wastetype = cursor.fetchall()
@@ -192,7 +192,7 @@ class WasteWrangler:
         #allRoute should have all the Route IDs that do not have any trips involving the wastypes of our truck
         allRoutes = list()
         for row in range(len(truck_wastetype)):
-            waste = truck_wastetype[row][1]
+            waste = truck_wastetype[row][3]
             #print(waste)
             cursor.execute("select distinct t1.rid \
                             from Trip natural join Route t1 \
@@ -212,7 +212,7 @@ class WasteWrangler:
         if len(all_distinct_routes) == 0:
             return 0 
         """
-        
+
         #Step2: Starting from 8 a.m., find the earliest available pair of drivers of whom at least one can drive the
         #given truck and both are available for the day. Break ties by choosing lower eIDs.
 
