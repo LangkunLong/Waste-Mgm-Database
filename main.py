@@ -163,9 +163,9 @@ class WasteWrangler:
             # At this point, our rid should be valid, so our fetchall won't return an empty list
             # fetchall returns a list of tuples
             # find the waste type of corresponding to rid
-            cursor1.execute("SELECT wastetype FROM Route WHERE rid = %d;", rid)
+            cursor1.execute("SELECT wastetype FROM Route WHERE rid = {};".format(rid))
             wastetype = cursor1.fetchone()[0]
-            cursor1.execute("SELECT length FROM Route WHERE rid = %d;", rid)
+            cursor1.execute("SELECT length FROM Route WHERE rid = {};".format(rid))
             length = cursor1.fetchone()[0]
             endtime = time + dt.timedelta(hours=length / 5)
             # check if the time falls in 8:00:00 and 16:00:00 on the same date
