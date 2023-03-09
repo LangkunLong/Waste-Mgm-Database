@@ -526,7 +526,7 @@ def test_preliminary() -> None:
         scheduled_trips = ww.schedule_trips(1, dt.datetime(2023, 5, 3))
         assert scheduled_trips == 0, \
             f"[Schedule Trips] Expected 0, Got {scheduled_trips}"
-        print("Passed assert for scheduled trips\n")
+        #print("Passed assert for scheduled trips\n")
 
         # ----------------- Testing update_technicians  -----------------------#
 
