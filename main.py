@@ -455,6 +455,8 @@ class WasteWrangler:
                 print("No new facility found")
                 return 0
             reroute_facility = cursor.fetchone()[0]
+            print(reroute_facility)
+            print(date)
             cursor.execute("UPDATE Trip \
                             SET fid = {} \
                             WHERE fid = {} and ttime::date = {};".format(reroute_facility, fid, date))
