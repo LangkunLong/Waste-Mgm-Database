@@ -212,7 +212,8 @@ class WasteWrangler:
             if len(subRoute) != 0:
                 allRoutes.extend(subRoute)
         
-        all_distinct_routes = set(allRoutes)
+        all_distinct_routes = list(dict.fromkeys(allRoutes))
+        #print(all_distinct_routes)
         #no available routes 
         """
         if len(all_distinct_routes) == 0:
@@ -273,15 +274,21 @@ class WasteWrangler:
 
         for route in range(len(all_distinct_routes)):
             if current_time < end_time:
+                #print(all_distinct_routes[route])
+                rid = all_distinct_routes[route][0]
+                #print("rid:", rid)
                 cursor.execute("select wastetype, length \
                                 from Route \
-                                where rID = %s;", [all_distinct_routes[route]])
+                                where rID = %s;", [rid])
                 
                 #covnert to hour + minutes, update time, then insert into trips , then update trips_scheduled
                 #ALSO NEED FID VALUE (get from wastype from route it )
 
-                #obtain the length and wastetype of the route 
-                route_waste, route_length = cursor.fetchone()[0], cursor.fetchone()[1]
+                #obtain the length and wastetype of the route
+                route_tuple = cursor.fetchone()
+                route_waste = route_tuple[0]
+                route_length = route_tuple[1] 
+                
 
                 #get the lowest fid that can collect the waste of the route
                 cursor.execute("select fid \
@@ -292,7 +299,7 @@ class WasteWrangler:
 
                 #insert into trips relation: 
                 cursor.execute("insert into trip values \
-                                (%s, %s, %s, NULL, %s, %s, %s);", [route, tid, current_time, driver1, driver2, fid])
+                                (%s, %s, %s, NULL, %s, %s, %s);", [rid, tid, current_time, driver1, driver2, fid])
                 
                 #update time; update number of trips scheduled 
                 current_time = current_time + dt.timedelta(hours=float(route_length/5)) #time it takes to finish the route
