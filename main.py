@@ -218,10 +218,10 @@ class WasteWrangler:
                              SELECT d1.eid \
                              FROM Driver d1 JOIN Employee e1 ON d1.eid = e1.eid\
                              WHERE NOT EXISTS ( \
-                             SELECT Route r1 \
-                             FROM Route r1 NATURAL JOIN Trip tr1 \
-                             WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
-                                       or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
+                                 SELECT Route r1 \
+                                 FROM Route r1 NATURAL JOIN Trip tr1 \
+                                 WHERE (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
+                                           or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
                              ) \
                              ORDER BY e1.hiredate ASC;"
                         .format(time - dt.timedelta(minutes=30),
