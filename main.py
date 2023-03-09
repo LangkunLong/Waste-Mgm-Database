@@ -247,7 +247,7 @@ class WasteWrangler:
             return False
         pair_drivers = cursor1.fetchone()
         cursor1.execute(
-            "INSERT INTO Trip VALUES ({}, '{}', {}, {}, {}, {}, {});".format(rid, truck_find[0][0], time,
+            "INSERT INTO Trip VALUES ({}, {}, '{}', {}, {}, {}, {});".format(rid, truck_find[0][0], time,
                                                                              truck_find[0][2],
                                                                              pair_drivers[0], pair_drivers[1],
                                                                              available_facility))
