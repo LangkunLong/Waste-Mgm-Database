@@ -162,7 +162,7 @@ class WasteWrangler:
             cursor1.close()
             print("No facility")
             return False
-        available_facility = cursor1.fetchone()
+        available_facility = cursor1.fetchone()[0]
         # At this point, our rid should be valid, so our fetchall won't return an empty list
         # fetchall returns a list of tuples
         # find the waste type of corresponding to rid
