@@ -143,7 +143,7 @@ class WasteWrangler:
             # TODO: implement this method
             cursor1 = self.connection.cursor()
             # check for valid rid
-            cursor1.execute("select * from Route where rid = %d;", rid)
+            cursor1.execute("select * from Route where rid = {};".format(rid))
             if len(cursor1.fetchall()) == 0:
                 cursor1.close()
                 return False
