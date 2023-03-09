@@ -450,7 +450,7 @@ class WasteWrangler:
                         FROM facility f1\
                         WHERE f1.fid != {} and f1.wastetype = ( \
                             SELECT distinct f2.wastetype FROM facility f2 WHERE f2.fid = {}) \
-                        ORDER BY ASC f1.fid;".format(fid, fid))
+                        ORDER BY f1.fid ASC;".format(fid, fid))
         if cursor.rowcount == 0:
             print("No new facility found")
             return 0
