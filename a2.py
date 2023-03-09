@@ -181,10 +181,10 @@ class WasteWrangler:
 
         cursor = self.connection.cursor()
 
-        cursor.execute("drop view if exists allDriverTrips;")
-        cursor.execute("drop view if exists allDrivers;")
-        cursor.execute("drop view if exists allAvailableDrivers;")
-        cursor.execute("drop view if exists driverExperience;")
+        cursor.execute("drop view if exists allDriverTrips cascade;")
+        cursor.execute("drop view if exists allDrivers cascade;")
+        cursor.execute("drop view if exists allAvailableDrivers cascade;")
+        cursor.execute("drop view if exists driverExperience cascade;")
 
         cursor.execute("select * \
                        from Truck natural join TruckType \
