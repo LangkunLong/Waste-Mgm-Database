@@ -186,25 +186,30 @@ class WasteWrangler:
 
         cursor.execute("select Truck.tid, TruckType.wastetype, Truck.capacity \
                        from Truck natural join TruckType \
-                       where Truck.tid = %s;", (tid)) #get all wastetype the given truck can carry 
+                       where Truck.tid = %s;", [tid]) #get all wastetype the given truck can carry 
         truck_wastetype = cursor.fetchall()
-        truck_type = truck_wastetype[1]
+        # print(truck_wastetype)
+        truck_type = truck_wastetype[0][0]
 
         #iterate over each wastetype that the truck can carry, find routes where there's no trips in given day of that wastetype 
         #allRoute should have all the Route IDs that do not have any trips involving the wastypes of our truck
         allRoutes = list()
-        for row in truck_wastetype:
-            waste = truck_wastetype[1]
+        for row in range(len(truck_wastetype)):
+            waste = truck_wastetype[row][1]
+            #print(waste)
             cursor.execute("select distinct t1.rid \
                             from Trip natural join Route t1 \
-                            where t1 not in (select t2.rid \
+                            where t1.rid not in (select t2.rid \
                                              from Trip natural join Route t2 \
-                                             where date(trip.ttime) = '%s' and t2.wastetype = '%s') \
-                            order by t1.rid asc;", (date.date(), waste))
+                                             where date(trip.ttime) = %s and t2.wastetype = %s) \
+                            and t1.wastetype = %s \
+                            order by t1.rid asc;", (date.date(), waste, waste))
             subRoute = cursor.fetchall()
-            allRoutes = allRoutes.extend(subRoute)
+            #print("Subroute:", subRoute)
+            if len(subRoute) != 0:
+           	 allRoutes.extend(subRoute)
 
-        print(allRoutes)
+        #print(allRoutes)
         #keep distinct values
         allRoutes = set(allRoutes)
         if len(allRoutes) == 0:
@@ -525,6 +530,7 @@ def test_preliminary() -> None:
         scheduled_trips = ww.schedule_trips(1, dt.datetime(2023, 5, 3))
         assert scheduled_trips == 0, \
             f"[Schedule Trips] Expected 0, Got {scheduled_trips}"
+        print("Passed assert for scheduled trips\n")
 
         # ----------------- Testing update_technicians  -----------------------#
 
