@@ -185,9 +185,9 @@ class WasteWrangler:
                        from Truck natural join TruckType \
                        where Truck.tid = %s;", [tid]) #get all wastetype the given truck can carry 
         truck_wastetype = cursor.fetchall()
-        print("Trucktype relation: ", truck_wastetype)
+        #print("Trucktype relation: ", truck_wastetype)
         truck_type = truck_wastetype[0][0]
-        print("Trucktype: ", truck_type)
+        #print("Trucktype: ", truck_type)
 
         #iterate over each wastetype that the truck can carry, find routes where there's no trips in given day of that wastetype 
         #allRoute should have all the Route IDs that do not have any trips involving the wastypes of our truck
@@ -254,11 +254,11 @@ class WasteWrangler:
                         where not t1.eid = t2.eid \
                         and (t1.trucktype = %s or t2.trucktype = %s);",[truck_type, truck_type])
         #no available drivers
-        """
+       
         if cursor.rowcount == 0:
             return 0
-        """
-        driver1, driver2 = cursor.featchone()[0], cursor.featchone()[1]
+        
+        driver1, driver2 = cursor.fetchone()[0], cursor.fetchone()[1]
 
         #loop over the routes, and scheduling trips based on ascending rIDs. First trip assumes start at 8am, adds (route.length / 5km/hr)
         trips_scheduled = 0
