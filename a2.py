@@ -185,8 +185,9 @@ class WasteWrangler:
                        from Truck natural join TruckType \
                        where Truck.tid = %s;", [tid]) #get all wastetype the given truck can carry 
         truck_wastetype = cursor.fetchall()
-        # print(truck_wastetype)
+        print("Trucktype relation: ", truck_wastetype)
         truck_type = truck_wastetype[0][0]
+        print("Trucktype: ", truck_type)
 
         #iterate over each wastetype that the truck can carry, find routes where there's no trips in given day of that wastetype 
         #allRoute should have all the Route IDs that do not have any trips involving the wastypes of our truck
