@@ -245,7 +245,7 @@ class WasteWrangler:
         cursor.execute("create view driverExperience as \
                        select allAvailableDrivers.eid, Employee.hiredate, Driver.trucktype \
                        from allAvailableDrivers natural join Driver natural join Employee \
-                       order by Employee.hiredate asc, allAvailableDrivers.eid asc")
+                       order by Employee.hiredate asc, allAvailableDrivers.eid asc;")
         
         #create a self join, and since it is already ordered based on longest experience, we can select the first tuple where it satisfies:
         # eid1 != eid2 and one of eid1 or eid2 can drive required trucktype 
@@ -270,7 +270,7 @@ class WasteWrangler:
             if current_time < end_time:
                 cursor.execute("select wastetype, length \
                                 from Route \
-                                where rID = %s", [all_distinct_routes[route]])
+                                where rID = %s;", [all_distinct_routes[route]])
                 
                 #covnert to hour + minutes, update time, then insert into trips , then update trips_scheduled
                 #ALSO NEED FID VALUE (get from wastype from route it )
@@ -296,7 +296,12 @@ class WasteWrangler:
 
             else:
                 break
-        
+
+        cursor.execute("drop view allDriverTrips;")
+        cursor.execute("drop view allDrivers;")
+        cursor.execute("drop view allAvailableDrivers;")
+        cursor.execute("drop view driverExperience;")
+
         return trips_scheduled
     
 
