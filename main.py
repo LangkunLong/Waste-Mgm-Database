@@ -198,7 +198,7 @@ class WasteWrangler:
                                 FROM Route r1 NATURAL JOIN Trip tr1 \
                                 WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
                                        or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
-                             ORDER BY DESC t1.capacity, ASC t1.tid;".format(wastetype,
+                             ORDER BY t1.capacity DESC, t1.tid ASC;".format(wastetype,
                                                                             dt.date(time.year, time.month,
                                                                                     time.day),
                                                                             time - dt.timedelta(minutes=30),
@@ -222,7 +222,7 @@ class WasteWrangler:
                              WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
                                        or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
                              ) \
-                             ORDER BY ASC e1.hiredate;"
+                             ORDER BY e1.hiredate ASC;"
                         .format(time - dt.timedelta(minutes=30),
                                 endtime + dt.timedelta(minutes=30),
                                 time - dt.timedelta(minutes=30),
