@@ -144,13 +144,13 @@ class WasteWrangler:
         cursor1 = self.connection.cursor()
         # check for valid rid
         cursor1.execute("select * from Route where rid = {};".format(rid))
-        if len(cursor1.fetchall()) == 0:
+        if cursor1.rowcount == 0:
             cursor1.close()
             print("invalid rid")
             return False
         # check if there is a trip already scheduled
         cursor1.execute("select rid from Trip where rid = {} and ttime = '{}';".format(rid, time))
-        if len(cursor1.fetchall()) != 0:
+        if cursor1.rowcount == 0:
             cursor1.close()
             print("Trip scheduled")
             return False
@@ -158,11 +158,11 @@ class WasteWrangler:
         cursor1.execute("SELECT fid \
                              FROM facility, truck, Route, TruckType \
                              WHERE truck.trucktype = TruckType.trucktype and TruckType.wastetype = Route.wastetype and TruckType.wastetype = facility.wastetype and Route.rid = {};".format(rid))
-        available_facility = cursor1.fetchone()
-        if available_facility is None:
+        if cursor1.rowcount == 0:
             cursor1.close()
             print("No facility")
             return False
+        available_facility = cursor1.fetchone()
         # At this point, our rid should be valid, so our fetchall won't return an empty list
         # fetchall returns a list of tuples
         # find the waste type of corresponding to rid
@@ -183,6 +183,7 @@ class WasteWrangler:
                                                                                                                    endtime,
                                                                                                                    eight_am,
                                                                                                                    four_pm))
+
         legal_time = cursor1.fetchall()
         if len(legal_time) == 0 or time.day != endtime.day:
             cursor1.close()
@@ -190,28 +191,28 @@ class WasteWrangler:
             return False
         # find the trucks that is not in maintenance, no trip in 30 minutes prior to this trip or overlapping in the time interval
         # no trip after its end time (endtime)
-        cursor1.execute("CREATE VIEW available_truck AS \
-                             SELECT t1.tid tid, t1.trucktype trucktype, t1.capacity capacity \
-                             FROM Truck t1 NATURAL JOIN TruckType ty1 NATURAL JOIN maintenance \
-                             WHERE ty1.wastetype = '{}' and maintenance.mdate != '{}' and NOT EXISTS( \
-                                SELECT * \
-                                FROM Route r1 NATURAL JOIN Trip tr1 \
-                                WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
-                                       or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5)))))\
-                             ORDER BY t1.capacity DESC, t1.tid ASC;".format(wastetype,
-                                                                            dt.date(time.year, time.month,
-                                                                                    time.day),
-                                                                            time - dt.timedelta(minutes=30),
-                                                                            endtime + dt.timedelta(minutes=30),
-                                                                            time - dt.timedelta(minutes=30),
-                                                                            endtime + dt.timedelta(minutes=30),
-                                                                            time - dt.timedelta(minutes=30),
-                                                                            time + dt.timedelta(minutes=30)))
-        truck_find = cursor1.fetchall()  # list of tuples
-        if len(truck_find) == 0:
+        cursor1.execute(" \
+                         SELECT t1.tid tid, t1.trucktype trucktype, t1.capacity capacity \
+                         FROM Truck t1 NATURAL JOIN TruckType ty1 NATURAL JOIN maintenance \
+                         WHERE ty1.wastetype = '{}' and maintenance.mdate != '{}' and NOT EXISTS( \
+                            SELECT * \
+                            FROM Route r1 NATURAL JOIN Trip tr1 \
+                            WHERE  t1.tid = tr1.tid and (tr1.ttime BETWEEN '{}' and '{}' or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN '{}' and '{}' \
+                                   or ('{}', '{}')OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5)))))\
+                         ORDER BY t1.capacity DESC, t1.tid ASC;".format(wastetype,
+                                                                        dt.date(time.year, time.month,
+                                                                                time.day),
+                                                                        time - dt.timedelta(minutes=30),
+                                                                        endtime + dt.timedelta(minutes=30),
+                                                                        time - dt.timedelta(minutes=30),
+                                                                        endtime + dt.timedelta(minutes=30),
+                                                                        time - dt.timedelta(minutes=30),
+                                                                        time + dt.timedelta(minutes=30)))
+        if cursor1.rowcount == 0:
             cursor1.close()
             print("No Truck Available")
             return False
+        truck_find = cursor1.fetchall()  # list of tuples
         # find all the available employees
         cursor1.execute("CREATE VIEW All_drivers_available AS \
                              SELECT d1.eid \
@@ -242,7 +243,7 @@ class WasteWrangler:
                              ) \
                              ;".format(truck_find[0][1]))
         pair_drivers = cursor1.fetchone()
-        if len(pair_drivers) == 0:
+        if cursor1.rowcount == 0:
             print("No drivers")
             return False
         cursor1.execute(
