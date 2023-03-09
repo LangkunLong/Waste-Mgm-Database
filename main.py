@@ -452,6 +452,7 @@ class WasteWrangler:
                                 SELECT distinct f2.wastetype FROM facility f2 WHERE f2.fid = {}) \
                             ORDER BY ASC f1.fid;".format(fid, fid))
             if cursor.rowcount == 0:
+                print("No new facility found")
                 return 0
             reroute_facility = cursor.fetchone()[0]
             cursor.execute("UPDATE Trip \
