@@ -445,7 +445,21 @@ class WasteWrangler:
         """
         try:
             # TODO: implement this method
-            pass
+            cursor = self.connection.cursor()
+            cursor.execute("SELECT f1.fid \
+                            FROM facility f1\
+                            WHERE f1.fid != {} and f1.wastetype = ( \
+                                SELECT distinct f2.wastetype FROM facility f2 WHERE f2.fid = {}) \
+                            ORDER BY ASC f1.fid;".format(fid, fid))
+            if cursor.rowcount == 0:
+                return 0
+            reroute_facility = cursor.fetchone()[0]
+            cursor.execute("UPDATE Trip \
+                            SET fid = {} \
+                            WHERE fid = {} and ttime::date = {};".format(fid, reroute_facility, date))
+            num_rerouted = cursor.rowcount
+            self.connection.commit()
+            return num_rerouted
         except pg.Error as ex:
             # You may find it helpful to uncomment this line while debugging,
             # as it will show you all the details of the error that occurred:
