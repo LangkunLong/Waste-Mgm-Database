@@ -143,12 +143,12 @@ class WasteWrangler:
             # TODO: implement this method
             cursor1 = self.connection.cursor()
             # check for valid rid
-            cursor1.execute("select * from Route where rid = %d", rid)
+            cursor1.execute("select * from Route where rid = %d;", rid)
             if len(cursor1.fetchall()) == 0:
                 cursor1.close()
                 return False
             # check if there is a trip already scheduled
-            cursor1.execute("select rid from Trip where rid = {} and ttime = {}".format(rid, time))
+            cursor1.execute("select rid from Trip where rid = {} and ttime = {};".format(rid, time))
             if len(cursor1.fetchall()) != 0:
                 cursor1.close()
                 return False
@@ -216,10 +216,7 @@ class WasteWrangler:
                                  WHERE NOT EXISTS (tr1.eid1 = d1.eid or tr1.eid2 = d1.eid) and (tr1.ttime BETWEEN {} and {} or (tr1.ttime + (interval '1 hour' * r1.length/5)) BETWEEN {} and {} \
                                            or ({}, {})OVERLAPS (tr1.ttime, (tr1.ttime + (interval '1 hour' * r1.length/5))))\
                                  ) \
-                                 ORDER BY ASC e1.hiredate \
-                                 SELECT a1.eid, a2.eid \
-                                 FROM All_drivers_available a1 JOIN All_drivers_available a2 \
-                                 WHERE a1.eid != a2.eid;"
+                                 ORDER BY ASC e1.hiredate;"
                             .format(time - dt.timedelta(minutes=30),
                                     endtime + dt.timedelta(minutes=30),
                                     time - dt.timedelta(minutes=30),
@@ -241,9 +238,9 @@ class WasteWrangler:
             if len(pair_drivers) == 0:
                 return False
             cursor1.execute(
-                "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {})".format(rid, time, truck_find[0], truck_find[2],
-                                                                              pair_drivers[0], pair_drivers[1],
-                                                                              available_facility))
+                "INSERT INTO Trip VALUES ({}, {}, {}, {}, {}, {}, {});".format(rid, time, truck_find[0], truck_find[2],
+                                                                               pair_drivers[0], pair_drivers[1],
+                                                                               available_facility))
             return True
         except pg.Error as ex:
             # You may find it helpful to uncomment this line while debugging,
