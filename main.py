@@ -150,7 +150,7 @@ class WasteWrangler:
             return False
         # check if there is a trip already scheduled
         cursor1.execute("select rid from Trip where rid = {} and ttime = '{}';".format(rid, time))
-        if cursor1.rowcount == 0:
+        if cursor1.rowcount != 0:
             cursor1.close()
             print("Trip scheduled")
             return False
