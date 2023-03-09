@@ -178,9 +178,6 @@ class WasteWrangler:
         tests could use any valid value for <date>.
         """
         # TODO: implement this method
-        if self.connect('csc343h-longlang', 'longlang', '') == False:
-            print("[ERROR]**************")
-            print("CANNOT CONNECT")
 
         cursor = self.connection.cursor()
 
@@ -207,13 +204,12 @@ class WasteWrangler:
             subRoute = cursor.fetchall()
             #print("Subroute:", subRoute)
             if len(subRoute) != 0:
-           	 allRoutes.extend(subRoute)
-
-        #print(allRoutes)
-        #keep distinct values
-        allRoutes = set(allRoutes)
-        if len(allRoutes) == 0:
-            return 0 #no available routes 
+                allRoutes.extend(subRoute)
+        
+        all_distinct_routes = set(allRoutes)
+        #no available routes 
+        if len(all_distinct_routes) == 0:
+            return 0 
 
         #Step2: Starting from 8 a.m., find the earliest available pair of drivers of whom at least one can drive the
         #given truck and both are available for the day. Break ties by choosing lower eIDs.
@@ -261,11 +257,11 @@ class WasteWrangler:
         start_time = dt.datetime.combine(date, dt.time(8,0)) # 2023-05-03 08:00:00
         current_time = start_time
         end_time = dt.datetime.combine(date, dt.time(16,0))
-        for route in allRoutes:
+        for route in range(len(all_distinct_routes)):
             if current_time < end_time:
                 cursor.execute("select wastetype, length \
                                 from Route \
-                                where rID = %s", [route])
+                                where rID = %s", [all_distinct_routes[route]])
                 
                 #covnert to hour + minutes, update time, then insert into trips , then update trips_scheduled
                 #ALSO NEED FID VALUE (get from wastype from route it )
