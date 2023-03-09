@@ -199,11 +199,12 @@ class WasteWrangler:
                             from Trip natural join Route t1 \
                             where t1 not in (select t2.rid \
                                              from Trip natural join Route t2 \
-                                             where t2.date = %s and t2.wastetype = %s) \
+                                             where trip.ttime = %s and t2.wastetype = %s) \
                             order by t1.rid asc;", [date, waste])
             subRoute = cursor.fetchall()
             allRoutes = allRoutes.extend(subRoute)
-        
+
+        print(allRoutes)
         #keep distinct values
         allRoutes = set(allRoutes)
         if len(allRoutes) == 0:
@@ -216,11 +217,11 @@ class WasteWrangler:
         cursor.execute(" create view allDriverTrips as \
                         (select distinct eid \
                          from Driver join Trip on Driver.eid = Trip.eid1 \
-                         where Trip.date = %s) \
+                         where trip.ttime = %s) \
                          UNION \
                         (select distinct eid \
                          from Driver join Trip on Driver.eid = Trip.eid2 \
-                         where Trip.date = %s);", [date, date])
+                         where trip.ttime = %s);", [date, date])
         
         #obtain all the drivers who do not have a booked trip on that day, creates a view called <allDrivers>
         cursor.execute("create view allDrivers as \
@@ -240,7 +241,7 @@ class WasteWrangler:
         cursor.execute("create view driverExperience as \
                        select allAvailableDrivers.eid, Employee.hiredate, Driver.trucktype \
                        from allAvailableDrivers natural join Driver natural join Employee \
-                       order by Employee.hiredate desc, allAvailableDrivers.eid asc")
+                       order by Employee.hiredate asc, allAvailableDrivers.eid asc")
         
         #create a self join, and since it is already ordered based on longest experience, we can select the first tuple where it satisfies:
         # eid1 != eid2 and one of eid1 or eid2 can drive required trucktype 
