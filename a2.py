@@ -199,8 +199,8 @@ class WasteWrangler:
                             from Trip natural join Route t1 \
                             where t1 not in (select t2.rid \
                                              from Trip natural join Route t2 \
-                                             where trip.ttime = %s and t2.wastetype = %s) \
-                            order by t1.rid asc;", [date, waste])
+                                             where date(trip.ttime) = %s and t2.wastetype = %s) \
+                            order by t1.rid asc;", [date.date(), waste])
             subRoute = cursor.fetchall()
             allRoutes = allRoutes.extend(subRoute)
 
@@ -217,11 +217,11 @@ class WasteWrangler:
         cursor.execute(" create view allDriverTrips as \
                         (select distinct eid \
                          from Driver join Trip on Driver.eid = Trip.eid1 \
-                         where trip.ttime = %s) \
+                         where date(trip.ttime) = %s) \
                          UNION \
                         (select distinct eid \
                          from Driver join Trip on Driver.eid = Trip.eid2 \
-                         where trip.ttime = %s);", [date, date])
+                         where date(trip.ttime) = %s);", [date.date(), date.date()])
         
         #obtain all the drivers who do not have a booked trip on that day, creates a view called <allDrivers>
         cursor.execute("create view allDrivers as \
