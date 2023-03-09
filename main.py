@@ -251,6 +251,7 @@ class WasteWrangler:
                                                                              truck_find[0][2],
                                                                              pair_drivers[0], pair_drivers[1],
                                                                              available_facility))
+        cursor1.execute("DROP VIEW All_drivers_available CASCADE;")
         return True
         # try:
         #
