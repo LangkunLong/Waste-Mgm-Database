@@ -207,9 +207,8 @@ class WasteWrangler:
                                              where date(trip.ttime) = %s and t2.wastetype = %s) \
                             and t1.wastetype = %s \
                             order by t1.rid asc;", (date.date(), waste, waste))
-            subRoute = cursor.fetchall()
-            #print("Subroute:", subRoute)
-            if len(subRoute) != 0:
+            if cursor.rowcount != 0:
+                subRoute = cursor.fetchall()
                 allRoutes.extend(subRoute)
         
         all_distinct_routes = list(dict.fromkeys(allRoutes))
@@ -346,14 +345,58 @@ class WasteWrangler:
         Hint: We have provided a helper _read_qualifications_file that you
             might find helpful for completing this method.
         """
-        try:
-            # TODO: implement this method
-            pass
+        # TODO: implement this method
+        employee_list = self._read_qualifications_file(qualifications_file)
+        cursor = self.connection.cursor()
+        employee_added = 0
+
+        for employee in employee_list:
+            employee_name = employee[0] + " " + employee[1]
+
+            #check if employee name is correct and exists in employee relation
+            cursor.execute("select eid \
+                            from employee \
+                            where name = %s;", [employee_name])
+            if cursor.rowcount == 0: #doesn't have this employee
+                continue
+            
+            #check if employee is a driver
+            name = cursor.fetchone() 
+            eid = name[0]
+            cursor.execute("select * \
+                            from driver \
+                            where eid = %s;", [eid])
+            if cursor.rowcount != 0: #employee exists in driver relation
+                continue
+            
+            #check if trucktype is correct 
+            truck_type = employee[2]
+            cursor.execute("select * \
+                            from trucktype \
+                            where trucktype = %s;", [truck_type])
+            if cursor.rowcount == 0: #incorrect trucktype
+                continue
+
+            #check if employee is already working on the given truck
+            cursor.execute("select * \
+                            from technician \
+                            where eid = %s \
+                            and trucktype = %s;", [eid, truck_type])
+            if cursor.rowcount != 0: #returns non-empty row, means employee already working on given type
+                continue
+
+            cursor.execute("insert into technician values \
+                            (%s,%s);", [eid, truck_type])
+            employee_added = employee_added + 1
+        
+        return employee_added
+    """
         except pg.Error as ex:
             # You may find it helpful to uncomment this line while debugging,
             # as it will show you all the details of the error that occurred:
             # raise ex
             return 0
+    """
 
     def workmate_sphere(self, eid: int) -> list[int]:
         """Return the workmate sphere of the driver identified by <eid>, as a
