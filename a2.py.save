@@ -181,11 +181,6 @@ class WasteWrangler:
 
         cursor = self.connection.cursor()
 
-        cursor.execute("drop view if exists allDriverTrips cascade;")
-        cursor.execute("drop view if exists allDrivers cascade;")
-        cursor.execute("drop view if exists allAvailableDrivers cascade;")
-        cursor.execute("drop view if exists driverExperience cascade;")
-
         cursor.execute("select * \
                        from Truck natural join TruckType \
                        where Truck.tid = %s;", [tid]) #get all wastetype the given truck can carry 
@@ -207,12 +202,12 @@ class WasteWrangler:
                                              where date(trip.ttime) = %s and t2.wastetype = %s) \
                             and t1.wastetype = %s \
                             order by t1.rid asc;", (date.date(), waste, waste))
-            if cursor.rowcount != 0:
-                subRoute = cursor.fetchall()
+            subRoute = cursor.fetchall()
+            #print("Subroute:", subRoute)
+            if len(subRoute) != 0:
                 allRoutes.extend(subRoute)
         
-        all_distinct_routes = list(dict.fromkeys(allRoutes))
-        #print(all_distinct_routes)
+        all_distinct_routes = set(allRoutes)
         #no available routes 
         """
         if len(all_distinct_routes) == 0:
@@ -250,7 +245,7 @@ class WasteWrangler:
         cursor.execute("create view driverExperience as \
                        select allAvailableDrivers.eid, Employee.hiredate, Driver.trucktype \
                        from allAvailableDrivers natural join Driver natural join Employee \
-                       order by Employee.hiredate asc, allAvailableDrivers.eid asc;")
+                       order by Employee.hiredate asc, allAvailableDrivers.eid asc")
         
         #create a self join, and since it is already ordered based on longest experience, we can select the first tuple where it satisfies:
         # eid1 != eid2 and one of eid1 or eid2 can drive required trucktype 
@@ -273,34 +268,26 @@ class WasteWrangler:
 
         for route in range(len(all_distinct_routes)):
             if current_time < end_time:
-                #print(all_distinct_routes[route])
-                rid = all_distinct_routes[route][0]
-                #print("rid:", rid)
                 cursor.execute("select wastetype, length \
                                 from Route \
-                                where rID = %s;", [rid])
+                                where rID = %s", [all_distinct_routes[route]])
                 
                 #covnert to hour + minutes, update time, then insert into trips , then update trips_scheduled
                 #ALSO NEED FID VALUE (get from wastype from route it )
 
-                #obtain the length and wastetype of the route
-                route_tuple = cursor.fetchone()
-                route_waste = route_tuple[0]
-                route_length = route_tuple[1] 
-                
+                #obtain the length and wastetype of the route 
+                route_waste, route_length = cursor.fetchone()[0], cursor.fetchone()[1]
 
                 #get the lowest fid that can collect the waste of the route
                 cursor.execute("select fid \
                                 from Facility \
                                 where wastetype = %s \
                                 order by fid asc;", [route_waste])
-                fid_tuple = cursor.fetchone()
-                fid = fid_tuple[0]
+                fid = cursor.fetchone()
 
                 #insert into trips relation: 
                 cursor.execute("insert into trip values \
-                                (%s, %s, %s, NULL, %s, %s, %s);", [rid, tid, current_time, driver1, driver2, fid])
-                #print("inserted into trips: (%s, %s, %s, NULL, %s, %s, %s)",rid, tid, current_time, driver1, driver2, fid)
+                                (%s, %s, %s, NULL, %s, %s, %s);", [route, tid, current_time, driver1, driver2, fid])
                 
                 #update time; update number of trips scheduled 
                 current_time = current_time + dt.timedelta(hours=float(route_length/5)) #time it takes to finish the route
@@ -309,21 +296,14 @@ class WasteWrangler:
 
             else:
                 break
-
-        cursor.execute("drop view if exists allDriverTrips cascade;")
-        cursor.execute("drop view if exists allDrivers cascade;")
-        cursor.execute("drop view if exists allAvailableDrivers cascade;")
-        cursor.execute("drop view if exists driverExperience cascade;")
-
-        #commit newly inserted 
-        if trips_scheduled > 0:
-            self.connection.commit()
-
+        
+        cursor.execute("drop view allDriverTrips;")
+        cursor.execute("drop view 
         return trips_scheduled
     
 
     def update_technicians(self, qualifications_file: TextIO) -> int:
-        """Given the open file <qualifications_file> that follows the format
+        """Given the open file <qu allDriversalifications_file> that follows the format
         described on the handout, update the database to reflect that the
         recorded technicians can now work on the corresponding given truck type.
 
@@ -345,61 +325,14 @@ class WasteWrangler:
         Hint: We have provided a helper _read_qualifications_file that you
             might find helpful for completing this method.
         """
-        # TODO: implement this method
-        employee_list = self._read_qualifications_file(qualifications_file)
-        cursor = self.connection.cursor()
-        employee_added = 0
-
-        for employee in employee_list:
-            employee_name = employee[0] + " " + employee[1]
-
-            #check if employee name is correct and exists in employee relation
-            cursor.execute("select eid \
-                            from employee \
-                            where name = %s;", [employee_name])
-            if cursor.rowcount == 0: #doesn't have this employee
-                continue
-            
-            #check if employee is a driver
-            name = cursor.fetchone() 
-            eid = name[0]
-            cursor.execute("select * \
-                            from driver \
-                            where eid = %s;", [eid])
-            if cursor.rowcount != 0: #employee exists in driver relation
-                continue
-            
-            #check if trucktype is correct 
-            truck_type = employee[2]
-            cursor.execute("select * \
-                            from trucktype \
-                            where trucktype = %s;", [truck_type])
-            if cursor.rowcount == 0: #incorrect trucktype
-                continue
-
-            #check if employee is already working on the given truck
-            cursor.execute("select * \
-                            from technician \
-                            where eid = %s \
-                            and trucktype = %s;", [eid, truck_type])
-            if cursor.rowcount != 0: #returns non-empty row, means employee already working on given type
-                continue
-
-            cursor.execute("insert into technician values \
-                            (%s,%s);", [eid, truck_type])
-            employee_added = employee_added + 1
-
-        if employee_added > 0:
-            self.connection.commit()
-
-        return employee_added
-    """
+        try:
+            # TODO: implement this method
+            pass
         except pg.Error as ex:
             # You may find it helpful to uncomment this line while debugging,
             # as it will show you all the details of the error that occurred:
             # raise ex
             return 0
-    """
 
     def workmate_sphere(self, eid: int) -> list[int]:
         """Return the workmate sphere of the driver identified by <eid>, as a
@@ -452,87 +385,6 @@ class WasteWrangler:
         While a realistic use case will provide a <date> in the near future, our
         tests could use any valid value for <date>.
         """
-        #find all trucks that last had maintenance before date - 90
-        cutoff_date = date + dt.timedelta(days=-90)
-        cursor = self.connection.cursor()
-
-        #first find all trucks that had maintenance within 90 days, then later subtract this from maintenance to find all trucks
-        #that did not have maintenance within 90 days
-        cursor.execute("create view within_90_days as \
-                        select t1.tid \
-                        from truck t1 \
-                        where exists (select t2.tid \
-                                      from maintenance t2 \
-                                      where t1.tid = t2.tid \
-                                      and t2.mdate >= %s);", [cutoff_date])
-        
-        cursor.execute("create view not_within_90_days as \
-                        (select tid from truck) \
-                        EXCEPT \
-                        (select tid from within_90_days);")
-        
-        cursor.execute("select * from not_within_90_days;")
-        trucks_need_maintenance = list()
-        if cursor.rowcount != 0:
-            trucks_need_maintenance = cursor.fetchall()
-        
-        latest_date = date + dt.timedelta(days=10)
-        trucks_maintenanced = 0
-        
-        for truck in trucks_need_maintenance:
-            tid = truck[0]
-            cursor.execute("select trucktype \
-                            from truck \
-                            where tid = %s;", [tid])
-            truck_tuple = cursor.fetchone()
-            truck_type = truck_tuple[0]
-
-            #see if there is a scheduled maintenance in the next 10 days
-            cursor.execute("select * \
-                            from maintenance \
-                            where tid = %s \
-                            and mdate between %s and %s;", [tid, date, latest_date])
-            if cursor.rowcount != 0:
-                continue
-
-            #if we get here, it means that there is no upcoming scheduled maintenance
-            maintenance_date = date + dt.timedelta(days=1)
-
-            #create a view to find all booked technicians, then we subtract this from all technicians
-            cursor.execute("create view scheduled_technicians as \
-                            select distinct eid from maintenance \
-                            where mdate = %s;", [maintenance_date])
-            
-            cursor.execute("create view available_technicians as \
-                            (select distinct eid from technician) \
-                            except \
-                            (select * from scheduled_technicians);")
-            
-            cursor.execute("select distinct available_technicians.eid  \
-                            from available_technicians join technician on available_technicians.eid = technician.eid \
-                            where trucktype = %s \
-                            order by available_technicians.eid asc;", [truck_type])
-            
-            #if no available technicians:
-            if cursor.rowcount == 0:
-                continue
-
-            #get the first tuple since it is sorted in ascending order already 
-            technician_tuple = cursor.fetchone()
-            technician_eid = technician_tuple[0]
-
-            cursor.execute("insert into maintenance values \
-                            (%s,%s,%s);", [tid, technician_eid, maintenance_date])
-            print("inserted: (%s,%s,%s)",tid, technician_eid, maintenance_date)
-
-            trucks_maintenanced = trucks_maintenanced + 1
-        
-        if trucks_maintenanced > 0:
-            self.connection.commit()
-        
-        return trucks_maintenanced
-
-        """
         try:
             # TODO: implement this method
             pass
@@ -541,7 +393,6 @@ class WasteWrangler:
             # as it will show you all the details of the error that occurred:
             # raise ex
             return 0
-        """
 
     def reroute_waste(self, fid: int, date: dt.date) -> int:
         """Reroute the trips to <fid> on day <date> to another facility that
@@ -688,10 +539,6 @@ def test_preliminary() -> None:
             f"[Schedule Trips] Expected 0, Got {scheduled_trips}"
         #print("Passed assert for scheduled trips\n")
 
-        scheduled_trips = ww.schedule_trips(2, dt.datetime(2023,5, 4))
-        assert scheduled_trips == 1, \
-            f"[Schedule Trips] Expected 1, Got {scheduled_trips}"
-
         # ----------------- Testing update_technicians  -----------------------#
 
         # This uses the provided file. We recommend you make up your custom
@@ -706,17 +553,17 @@ def test_preliminary() -> None:
         # ----------------- Testing workmate_sphere ---------------------------#
 
         # This employee doesn't exist in our instance
-        #workmate_sphere = ww.workmate_sphere(2023)
-        #assert len(workmate_sphere) == 0, \
-        #    f"[Workmate Sphere] Expected [], Got {workmate_sphere}"
+        workmate_sphere = ww.workmate_sphere(2023)
+        assert len(workmate_sphere) == 0, \
+            f"[Workmate Sphere] Expected [], Got {workmate_sphere}"
 
-        #workmate_sphere = ww.workmate_sphere(3)
+        workmate_sphere = ww.workmate_sphere(3)
         # Use set for comparing the results of workmate_sphere since
         # order doesn't matter.
         # Notice that 2 is added to 1's work sphere because of the trip we
         # added earlier.
-        #assert set(workmate_sphere) == {1, 2}, \
-        #    f"[Workmate Sphere] Expected {{1, 2}}, Got {workmate_sphere}"
+        assert set(workmate_sphere) == {1, 2}, \
+            f"[Workmate Sphere] Expected {{1, 2}}, Got {workmate_sphere}"
 
         # ----------------- Testing schedule_maintenance ----------------------#
 
