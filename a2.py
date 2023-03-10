@@ -484,9 +484,6 @@ class WasteWrangler:
         
         for truck in trucks_need_maintenance:
 
-            cursor.execute("drop view if exists scheduled_technicians cascade;")
-            cursor.execute("drop view if exists available_technicians cascade;")
-
             tid = truck[0]
             cursor.execute("select trucktype \
                             from truck \
@@ -504,25 +501,33 @@ class WasteWrangler:
 
             #if we get here, it means that there is no upcoming scheduled maintenance
             maintenance_date = date + dt.timedelta(days=1)
+            technician_found = False
 
-            #create a view to find all booked technicians, then we subtract this from all technicians
-            cursor.execute("create view scheduled_technicians as \
-                            select distinct eid from maintenance \
-                            where mdate = %s;", [maintenance_date])
+            while(technician_found == False):
+                cursor.execute("drop view if exists scheduled_technicians cascade;")
+                cursor.execute("drop view if exists available_technicians cascade;")
+
+                #create a view to find all booked technicians, then we subtract this from all technicians
+                cursor.execute("create view scheduled_technicians as \
+                                select distinct eid from maintenance \
+                                where mdate = %s;", [maintenance_date])
             
-            cursor.execute("create view available_technicians as \
-                            (select distinct eid from technician) \
-                            except \
-                            (select * from scheduled_technicians);")
+                cursor.execute("create view available_technicians as \
+                                (select distinct eid from technician) \
+                                 except \
+                                (select * from scheduled_technicians);")
             
-            cursor.execute("select distinct available_technicians.eid  \
-                            from available_technicians join technician on available_technicians.eid = technician.eid \
-                            where trucktype = %s \
-                            order by available_technicians.eid asc;", [truck_type])
-            
-            #if no available technicians:
-            if cursor.rowcount == 0:
-                continue
+                cursor.execute("select distinct available_technicians.eid  \
+                                from available_technicians join technician on available_technicians.eid = technician.eid \
+                                where trucktype = %s \
+                                order by available_technicians.eid asc;", [truck_type])
+                
+                #if no available technicians available, see if there is availability next day
+                if cursor.rowcount == 0:
+                    maintenance_date = maintenance_date + dt.timedelta(days=1)
+                    continue
+                else:
+                    technician_found = True
 
             #get the first tuple since it is sorted in ascending order already 
             technician_tuple = cursor.fetchone()
