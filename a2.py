@@ -388,7 +388,10 @@ class WasteWrangler:
             cursor.execute("insert into technician values \
                             (%s,%s);", [eid, truck_type])
             employee_added = employee_added + 1
-        
+
+        if employee_added > 0:
+            self.connection.commit()
+
         return employee_added
     """
         except pg.Error as ex:
@@ -449,6 +452,87 @@ class WasteWrangler:
         While a realistic use case will provide a <date> in the near future, our
         tests could use any valid value for <date>.
         """
+        #find all trucks that last had maintenance before date - 90
+        cutoff_date = date + dt.timedelta(days=-90)
+        cursor = self.connection.cursor()
+
+        #first find all trucks that had maintenance within 90 days, then later subtract this from maintenance to find all trucks
+        #that did not have maintenance within 90 days
+        cursor.execute("create view within_90_days as \
+                        select t1.tid \
+                        from truck t1 \
+                        where exists (select t2.tid \
+                                      from maintenance t2 \
+                                      where t1.tid = t2.tid \
+                                      and t2.mdate >= %s);", [cutoff_date])
+        
+        cursor.execute("create view not_withiin_90_days as \
+                        (select tid from truck) \
+                        EXCEPT \
+                        (select tid from within_90_days);")
+        
+        cursor.execute("select * from not_within_90_days;")
+        trucks_need_maintenance = list()
+        if cursor.rowcount != 0:
+            trucks_need_maintenance = cursor.fetchall()
+        
+        latest_date = date + dt.timedelta(days=10)
+        trucks_maintenanced = 0
+        
+        for truck in trucks_need_maintenance:
+            tid = truck[0]
+            cursor.execute("select trucktype \
+                            from truck \
+                            where tid = %s;", [tid])
+            truck_tuple = cursor.fetchone()
+            truck_type = truck_tuple[0]
+
+            #see if there is a scheduled maintenance in the next 10 days
+            cursor.execute("select * \
+                            from maintenance \
+                            where tid = %s \
+                            and mdate between %s and %s;", [tid, date, latest_date])
+            if cursor.rowcount != 0:
+                continue
+
+            #if we get here, it means that there is no upcoming scheduled maintenance
+            maintenance_date = date + dt.timedelta(days=1)
+
+            #create a view to find all booked technicians, then we subtract this from all technicians
+            cursor.execute("create view scheduled_technicians as \
+                            select distinct eid from maintenance \
+                            where mdate = %s;", [maintenance_date])
+            
+            cursor.execute("create view available_technicians as \
+                            (select distinct eid from technician) \
+                            except \
+                            (select * from scheduled_technicians);")
+            
+            cursor.execute("select eid  \
+                            from available_technicians join techician on available_technicians.eid = technician.eid \
+                            where trucktype = %s \
+                            order by tid asc;", [truck_type])
+            
+            #if no available technicians:
+            if cursor.rowcount == 0:
+                continue
+
+            #get the first tuple since it is sorted in ascending order already 
+            technician_tuple = cursor.fetchone()
+            technician_eid = technician_tuple[0]
+
+            cursor.execute("insert into maintenance values \
+                            (%s,%s,%s);", [tid, technician_eid, maintenance_date])
+            print("inserted: (%s,%s,%s)",tid, technician_eid, maintenance_date)
+
+            trucks_maintenanced = trucks_maintenanced + 1
+        
+        if trucks_maintenanced > 0:
+            self.connection.commit()
+        
+        return trucks_maintenanced
+
+        """
         try:
             # TODO: implement this method
             pass
@@ -457,6 +541,7 @@ class WasteWrangler:
             # as it will show you all the details of the error that occurred:
             # raise ex
             return 0
+        """
 
     def reroute_waste(self, fid: int, date: dt.date) -> int:
         """Reroute the trips to <fid> on day <date> to another facility that
