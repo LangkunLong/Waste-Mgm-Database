@@ -456,6 +456,9 @@ class WasteWrangler:
         cutoff_date = date + dt.timedelta(days=-90)
         cursor = self.connection.cursor()
 
+        cursor.execute("drop view if exists within_90_days cascade;")
+        cursor.execute("drop view if exists not_within_90_days cascade;")
+
         #first find all trucks that had maintenance within 90 days, then later subtract this from maintenance to find all trucks
         #that did not have maintenance within 90 days
         cursor.execute("create view within_90_days as \
@@ -480,6 +483,10 @@ class WasteWrangler:
         trucks_maintenanced = 0
         
         for truck in trucks_need_maintenance:
+
+            cursor.execute("drop view if exists scheduled_technicians cascade;")
+            cursor.execute("drop view if exists available_technicians cascade;")
+
             tid = truck[0]
             cursor.execute("select trucktype \
                             from truck \
