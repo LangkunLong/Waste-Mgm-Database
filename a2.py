@@ -474,7 +474,9 @@ class WasteWrangler:
                         EXCEPT \
                         (select tid from within_90_days);")
         
-        cursor.execute("select * from not_within_90_days;")
+        cursor.execute("select tid \
+                        from not_within_90_days \
+                        order by tid asc;")
         trucks_need_maintenance = list()
         if cursor.rowcount != 0:
             trucks_need_maintenance = cursor.fetchall()
